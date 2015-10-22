@@ -8,7 +8,7 @@ from multiprocessing import Pool
 
 PPDB_DELIMITER = " ||| "
 POS_MAPPING_REGEX = r'\[[^\]]+\]\s*'
-LOG_BASE = 10
+LOG_BASE = 2
 
 def get_file_chunks(file_name, size=1024 ** 2):
 	with open(file_name) as f:
@@ -108,9 +108,8 @@ def main(ppdb_filename):
 		print "Waiting for", remaining, "paraphrase extraction tasks to complete..."
 		time.sleep(5)
 
-	print "Merging paraphrase extraction results..."
 	all_paraphrases = merge_paraphrase_probabilities(results.get())
-	print "Merged paraphrase extraction results."
+	print "Extracted paraphrases into a table in memory."
 
 	process_pool = Pool()
 	results = process_pool.map_async(normalize_phrase_probabilities, all_paraphrases.items())
