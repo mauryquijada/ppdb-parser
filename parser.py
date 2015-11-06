@@ -12,8 +12,6 @@ PPDB_COLUMN_DELIMITER = " ||| "
 PHRASE_TABLE_COLUMN_DELIMITER = " ||| " 
 POS_MAPPING_REGEX = r'\[[^\]]+\]\s*'
 LOG_BASE = math.e
-COUNTER = 0
-PROCESSED= 0
 
 class Paraphrase:
 	def __init__(self):
@@ -24,7 +22,6 @@ class Paraphrase:
 		self.alignment = None
 
 def get_file_chunks(file_name, size=1024 ** 2):
-	global COUNTER
 	with open(file_name) as f:
 		f.seek(0, 1)
 		while True:
@@ -46,7 +43,6 @@ def get_file_chunks(file_name, size=1024 ** 2):
 			# target word.
 			next_line = f.readline()
 			if not next_line:
-				COUNTER += len(lines)
 				yield lines
 				break
 
@@ -58,7 +54,7 @@ def get_file_chunks(file_name, size=1024 ** 2):
 				next_line_target_word = get_ppdb_line_target(next_line.split(PPDB_COLUMN_DELIMITER))
 
 			f.seek(end_of_last_line, 0)
-			COUNTER += len(lines)
+
 			yield lines
 			if not s:
 				break
@@ -155,7 +151,6 @@ def create_phrase_table_line(target_phrase, source_phrase, probability):
 			PHRASE_TABLE_COLUMN_DELIMITER.strip() + "\n"
 
 def main(ppdb_filename, output_filename):
-	global PROCESSED
 	process_pool = Pool()
 
 	# Create a new iterator wrapper that passes along the producer queue with lines
@@ -168,12 +163,8 @@ def main(ppdb_filename, output_filename):
 		for result in results:
 			for target_phrase, source_phrases in result.iteritems():
 				for source_phrase, probability in source_phrases.iteritems():
-						PROCESSED += 1
 						output.write(create_phrase_table_line(target_phrase,
 							source_phrase, probability))
-
-	print "lines are ", COUNTER
-	print "processed are ", PROCESSED
 
 if __name__ == "__main__":
 	ppdb_filename = None
