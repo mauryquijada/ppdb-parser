@@ -143,7 +143,7 @@ def normalize_phrase_probabilities(source_phrases):
 			probability_sum += probability.features[feature]
 
 		for source_phrase, _ in source_phrases.iteritems():
-			source_phrases[source_phrase].features[feature] = probability_sum * 1.0
+			source_phrases[source_phrase].features[feature] /= probability_sum * 1.0
 
 	return source_phrases
 
