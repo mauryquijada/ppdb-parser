@@ -8,6 +8,7 @@ import time
 
 from multiprocessing import Pool
 
+INDIRECT_PROBABILITY_FEATURE_NAME = "p(f|e)"
 PPDB_COLUMN_DELIMITER = " ||| "
 PHRASE_TABLE_COLUMN_DELIMITER = " ||| " 
 POS_MAPPING_REGEX = r'\[[^\]]+\]\s*'
@@ -67,9 +68,7 @@ def process_file_chunk(lines):
 		source_paraphrase = paraphrase.source
 		target_paraphrase = paraphrase.target
 
-		probability = float(paraphrase.features["p(f|e)"])
-		paraphrase_probabilities[target_paraphrase][source_paraphrase] =\
-		    LOG_BASE ** (-1 * probability)
+		paraphrase_probabilities[target_paraphrase][source_paraphrase] = paraphrase
 
 	for target_phrase, source_phrases in paraphrase_probabilities.iteritems():
 		paraphrase_probabilities[target_phrase] =\
@@ -119,7 +118,8 @@ def get_ppdb_line_features(split_line):
 	feature_dict = {}
 	for feature in features:
 		key, value = feature.split('=')
-		feature_dict[key] = value
+		if key == INDIRECT_PROBABILITY_FEATURE_NAME:
+			feature_dict[key] = LOG_BASE ** (-1 * float(value))
 
 	return feature_dict
 
@@ -136,19 +136,22 @@ normalize the probabilities.
 def normalize_phrase_probabilities(source_phrases):
 	probability_sum = 0
 
-	for _, probability in source_phrases.iteritems():
-		probability_sum += probability
+	features_to_normalize = [INDIRECT_PROBABILITY_FEATURE_NAME]
 
-	for source_phrase, _ in source_phrases.iteritems():
-		source_phrases[source_phrase] /= probability_sum * 1.0
+	for feature in features_to_normalize:
+		for _, probability in source_phrases.iteritems():
+			probability_sum += probability.features[feature]
+
+		for source_phrase, _ in source_phrases.iteritems():
+			source_phrases[source_phrase].features[feature] = probability_sum * 1.0
 
 	return source_phrases
 
-def create_phrase_table_line(target_phrase, source_phrase, probability):
-	return source_phrase + PHRASE_TABLE_COLUMN_DELIMITER +\
-			target_phrase + PHRASE_TABLE_COLUMN_DELIMITER +\
-			str(probability) + PHRASE_TABLE_COLUMN_DELIMITER +\
-			PHRASE_TABLE_COLUMN_DELIMITER.strip() + "\n"
+def create_phrase_table_line(paraphrase):
+	return paraphrase.source + PHRASE_TABLE_COLUMN_DELIMITER +\
+			paraphrase.target + PHRASE_TABLE_COLUMN_DELIMITER +\
+			str(paraphrase.features[INDIRECT_PROBABILITY_FEATURE_NAME]) + PHRASE_TABLE_COLUMN_DELIMITER +\
+			paraphrase.alignment + " " + PHRASE_TABLE_COLUMN_DELIMITER.strip() + "\n"
 
 def main(ppdb_filename, output_filename):
 	process_pool = Pool()
@@ -162,9 +165,8 @@ def main(ppdb_filename, output_filename):
 	with open(output_filename, "w") as output:
 		for result in results:
 			for target_phrase, source_phrases in result.iteritems():
-				for source_phrase, probability in source_phrases.iteritems():
-						output.write(create_phrase_table_line(target_phrase,
-							source_phrase, probability))
+				for source_phrase, paraphrase in source_phrases.iteritems():
+						output.write(create_phrase_table_line(paraphrase))
 
 if __name__ == "__main__":
 	ppdb_filename = None
