@@ -127,7 +127,7 @@ def get_ppdb_line_features(split_line):
 Given a PPDB line properly split, return the alignment.
 """
 def get_ppdb_line_alignment(split_line):
-	return split_line[4]
+	return split_line[4].rstrip('\n')
 
 """
 Given a dictionary of {source_phrase_1: 0.xxx, source_phrase_2: 0.xxx, ...},
