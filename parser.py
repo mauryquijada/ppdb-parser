@@ -102,13 +102,15 @@ def get_ppdb_line_lhs(split_line):
 Given a PPDB line properly split, return the source.
 """
 def get_ppdb_line_source(split_line):
-	return re.sub(POS_MAPPING_REGEX, r'', split_line[1]).strip()
+	s = re.sub(POS_MAPPING_REGEX, r'', split_line[1]).strip()
+	return escape_moses_characters(s)
 
 """
 Given a PPDB line properly split, return the target.
 """
 def get_ppdb_line_target(split_line):
-	return re.sub(POS_MAPPING_REGEX, r'', split_line[2]).strip()
+	s = re.sub(POS_MAPPING_REGEX, r'', split_line[2]).strip()
+	return escape_moses_characters(s)
 
 """
 Given a PPDB line properly split, return the features.
@@ -128,6 +130,23 @@ Given a PPDB line properly split, return the alignment.
 """
 def get_ppdb_line_alignment(split_line):
 	return split_line[4].rstrip('\n')
+
+"""
+Given a PPDB source or target phrase, escapes characters that Moses considers
+special.
+"""
+def escape_moses_characters(s):
+	s = re.sub(r'^ | $|[\000-\037]|\s+', r'', s)
+	s = re.sub(r'&', r'&amp;', s) # Escape escape.
+	s = re.sub(r'\|', r'&#124;', s) # factor separator
+	s = re.sub(r'<', r'&lt;', s) # xml
+	s = re.sub(r'>', r'&gt;', s) # xml
+	s = re.sub(r'\'', r'&apos;', s) # xml
+	s = re.sub(r'"', r'&quot;', s) # xml
+	s = re.sub(r'\[', r'&#91;', s) # Syntax non-terminal
+	s = re.sub(r'\]', r'&#93;', s) # Syntax non-terminal
+
+	return s
 
 """
 Given a dictionary of {source_phrase_1: 0.xxx, source_phrase_2: 0.xxx, ...},
